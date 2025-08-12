@@ -1,0 +1,69 @@
+var LandsatLST = require('users/keejinwen2000/LSTmodule:LST.js')
+
+// select region of interest, date range, and landsat satellite
+var towns = ee.FeatureCollection('projects/ee-keejinwen2000/assets/singaporesubzonesfinal');
+var geometry = towns.geometry();
+var satellite = 'L8';
+var date_start = '2023-05-21';
+var date_end = '2023-05-24';
+var use_ndvi = true;
+
+// get landsat collection with added variables: NDVI, FVC, TPW, EM, LST
+var LandsatColl = LandsatLST.collection(satellite, date_start, date_end, geometry, use_ndvi)
+print(LandsatColl)
+
+// select the first feature
+var exImage = LandsatColl.first();
+
+var cmap1 = ['blue', 'cyan', 'green', 'yellow', 'red'];
+var cmap2 = ['F2F2F2','EFC2B3','ECB176','E9BD3A','E6E600','63C600','00A600']; 
+
+Map.centerObject(geometry)
+Map.addLayer(exImage.select('TPW'),{min:0.0, max:60.0, palette:cmap1},'TCWV')
+Map.addLayer(exImage.select('TPWpos'),{min:0.0, max:9.0, palette:cmap1},'TCWVpos')
+Map.addLayer(exImage.select('FVC'),{min:0.0, max:1.0, palette:cmap2}, 'FVC')
+Map.addLayer(exImage.select('EM'),{min:0.9, max:1.0, palette:cmap1}, 'Emissivity')
+Map.addLayer(exImage.select('B10'),{min:290, max:320, palette:cmap1}, 'TIR BT')
+Map.addLayer(exImage.select('LST'),{min:290, max:320, palette:cmap1}, 'LST')
+Map.addLayer(exImage.select('NDBI'),{min:290, max:320, palette:cmap1}, 'NDBI')
+Map.addLayer(exImage.select('NDVI'),{min:290, max:320, palette:cmap1}, 'NDVI')
+Map.addLayer(exImage.multiply(0.0000275).add(-0.2),{bands: ['SR_B4', 'SR_B3', 'SR_B2'], min:0, max:0.3}, 'RGB')
+
+var exImageClipped = exImage.select('LST').subtract(273.15).clip(towns);
+
+Export.image.toDrive({
+  image: exImageClipped,
+  description: 'LST_Towns_Export',
+  folder: 'GEE_Exports',
+  fileNamePrefix: 'LST_Singapore_Towns',
+  region: towns.geometry(),
+  scale: 30,
+  crs: 'EPSG:4326',
+  maxPixels: 1e13
+});
+
+var exImageClipped = exImage.select('NDVI').clip(towns);
+
+Export.image.toDrive({
+  image: exImageClipped,
+  description: 'LST_Towns_Export',
+  folder: 'GEE_Exports',
+  fileNamePrefix: 'NDVI_sg',
+  region: towns.geometry(),
+  scale: 30,
+  crs: 'EPSG:4326',
+  maxPixels: 1e13
+});
+
+var exImageClipped = exImage.select('NDBI').clip(towns);
+
+Export.image.toDrive({
+  image: exImageClipped,
+  description: 'LST_Towns_Export',
+  folder: 'GEE_Exports',
+  fileNamePrefix: 'NDBI_sg',
+  region: towns.geometry(),
+  scale: 30,
+  crs: 'EPSG:4326',
+  maxPixels: 1e13
+});
